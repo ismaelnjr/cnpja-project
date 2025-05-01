@@ -9,7 +9,8 @@ class CNPJaLoteConsulta:
 
     def consultar_lote(self, cnpjs: List[str]) -> List[dict]:
         resultados = []
-        for cnpj in cnpjs:
+        cnpjs_unicos = list(set(cnpjs))  # remove duplicados    
+        for cnpj in cnpjs_unicos:
             try:
                 dados = self.api.consultar_cnpj(cnpj)
                 dados_cnpj = {
