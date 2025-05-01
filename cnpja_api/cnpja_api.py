@@ -1,8 +1,5 @@
 import os
 import requests
-from dotenv import load_dotenv
-
-load_dotenv()  # Carrega variáveis do arquivo .env
 
 class CNPJaAPI:
     BASE_URL = "https://api.cnpja.com"

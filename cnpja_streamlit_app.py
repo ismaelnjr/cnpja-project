@@ -1,7 +1,10 @@
 import streamlit as st
 import pandas as pd
+import os
 from cnpja_api.cnpja_api import CNPJaAPI
 from cnpja_api.cnpja_lote_consulta import CNPJaLoteConsulta
+
+CNPJA_API_KEY = os.getenv("CNPJA_API_KEY")
 
 st.set_page_config(page_title="Consulta CNPJ em Lote", layout="wide")
 
@@ -20,7 +23,7 @@ if st.button("Consultar CNPJs"):
         st.warning("⚠️ Informe ao menos um CNPJ válido.")
     else:
         with st.spinner("Consultando CNPJs..."):
-            api = CNPJaAPI()  # Usa chave do .env
+            api = CNPJaAPI(CNPJA_API_KEY)  
             cliente = CNPJaLoteConsulta(api)
             resultado = cliente.consultar_lote(cnpjs)
 

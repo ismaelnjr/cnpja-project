@@ -1,7 +1,8 @@
 from cnpja_api.cnpja_api import CNPJaAPI
 import json
+import os
 
-api = CNPJaAPI()
+api = CNPJaAPI(os.getenv("CNPJA_API_KEY"))
 
 cnpj = "01.430.822/0001-75"
 filename = f"{cnpj.replace('.', '').replace('/', '').replace('-', '')}_consulta_cnpj.json"
