@@ -4,7 +4,17 @@ import os
 from cnpja_api.cnpja_api import CNPJaAPI
 from cnpja_api.cnpja_lote_consulta import CNPJaLoteConsulta
 
-CNPJA_API_KEY = os.getenv("CNPJA_API_KEY")
+try:
+    CNPJA_API_KEY = st.secrets["CNPJA_API_KEY"]
+except (AttributeError, KeyError):
+    # Fallback para ambiente local com .env ou variáveis de ambiente
+    from dotenv import load_dotenv
+    load_dotenv()
+    CNPJA_API_KEY = os.getenv("CNPJA_API_KEY")
+
+# Validação da chave
+if not CNPJA_API_KEY:
+    raise ValueError("A chave da API (CNPJA_API_KEY) não foi definida.")
 
 st.set_page_config(page_title="Consulta CNPJ em Lote", layout="wide")
 
