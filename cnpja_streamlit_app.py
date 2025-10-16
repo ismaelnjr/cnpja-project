@@ -34,7 +34,11 @@ st.markdown("Informe uma lista de CNPJs (um por linha) e clique em **Consultar**
 # Campo de texto para entrada de CNPJs
 cnpj_input = st.text_area("Lista de CNPJs", height=200, placeholder="Digite ou cole os CNPJs aqui, um por linha...")
 
-consultas_por_minuto = st.slider("Limite de consultas por minuto", min_value=10, max_value=120, value=10, step=5)
+# Parâmetro de consultas por minuto via Streamlit secrets/config
+try:
+    consultas_por_minuto = st.secrets.get("CONSULTAS_POR_MINUTO", 10)
+except (StreamlitSecretNotFoundError):
+    consultas_por_minuto = 10
 
 exibir_cnae = st.checkbox("Mostrar atividades (CNAEs)", value=True)
 exibir_qsa = st.checkbox("Mostrar QSA (Quadro de Sócios e Administradores)", value=True)
