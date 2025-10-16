@@ -38,6 +38,7 @@ consultas_por_minuto = st.slider("Limite de consultas por minuto", min_value=10,
 
 exibir_cnae = st.checkbox("Mostrar atividades (CNAEs)", value=True)
 exibir_qsa = st.checkbox("Mostrar QSA (Quadro de Sócios e Administradores)", value=True)
+exibir_simples = st.checkbox("Verificar Simples Nacional", value=False)
 
 api = CNPJaAPI(CNPJA_API_KEY)  
 cliente = CNPJaLoteConsulta(api, consultas_por_minuto=consultas_por_minuto)
@@ -81,7 +82,8 @@ if st.session_state.get("iniciar_consulta", False):
             st.session_state.resultado = cliente.consultar_lote(
                 cnpjs, 
                 on_progress=atualizar_progresso,
-                check_cancel=verificar_cancelamento
+                check_cancel=verificar_cancelamento,
+                verificar_simples=exibir_simples
             )
             
             # Reseta flags
@@ -110,6 +112,10 @@ if st.session_state.resultado:
         if "003" in df["REG"].values and exibir_qsa:
             st.subheader("🧑‍💼 QSA (REG 003)")
             st.dataframe(df[df["REG"] == "003"].reset_index(drop=True).dropna(axis=1, how="all").infer_objects(copy=False).fillna(""))
+
+        if "900" in df["REG"].values and exibir_simples:
+            st.subheader("🏢 Simples Nacional (REG 900)")
+            st.dataframe(df[df["REG"] == "900"].reset_index(drop=True).dropna(axis=1, how="all").infer_objects(copy=False).fillna(""))
 
         if "999" in df["REG"].values:
             st.subheader("❌ Erros de Consulta (REG 999)")

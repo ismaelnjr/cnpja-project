@@ -1,6 +1,7 @@
 import pandas as pd
 import time
 from typing import List
+from datetime import datetime
 from cnpja_api.cnpja_api import CNPJaAPI
 
 
@@ -11,12 +12,36 @@ class CNPJaLoteConsulta:
         self.api = api
         self.consultas_por_minuto = consultas_por_minuto
         self.sleep_time = 60 / self.consultas_por_minuto
+    
+    def _formatar_data(self, data_str: str) -> str:
+        """
+        Formata uma data para o formato brasileiro dd/mm/yyyy
+        Aceita formatos: YYYY-MM-DD, YYYY-MM-DDTHH:MM:SS.000Z
+        """
+        if not data_str or data_str == "None":
+            return ""
+        
+        try:
+            # Remove informações de timezone se presentes
+            data_limpa = data_str.split('T')[0] if 'T' in data_str else data_str
+            
+            # Tenta parsear a data
+            if len(data_limpa) == 10 and data_limpa.count('-') == 2:
+                # Formato YYYY-MM-DD
+                data_obj = datetime.strptime(data_limpa, '%Y-%m-%d')
+                return data_obj.strftime('%d/%m/%Y')
+            else:
+                # Se não conseguir parsear, retorna a string original
+                return data_str
+        except (ValueError, AttributeError):
+            # Se houver erro na formatação, retorna a string original
+            return data_str
         
     @property
     def saldo_consultas(self):
         return self.api.consultar_saldo()
 
-    def consultar_lote(self, cnpjs: List[str], on_progress=None, check_cancel=None) -> List[dict]:
+    def consultar_lote(self, cnpjs: List[str], on_progress=None, check_cancel=None, verificar_simples=False) -> List[dict]:
         resultados = []
         cnpjs_unicos = list(set(cnpjs))  # remove duplicados    
         total = len(cnpjs_unicos)
@@ -39,7 +64,7 @@ class CNPJaLoteConsulta:
                     "CNPJ": dados.get("taxId"),
                     "Razão Social": dados.get("company", {}).get("name"),
                     "Nome Fantasia": dados.get("alias"),
-                    "Data Abertura": dados.get("founded"),
+                    "Data Abertura": self._formatar_data(dados.get("founded")),
                     "Capital Social": dados.get("company", {}).get("equity"),
                     "Situação Cadastral": dados.get("status", {}).get("text"),
                     "Natureza Jurídica": dados.get("company", {}).get("nature", {}).get("text"),
@@ -77,6 +102,44 @@ class CNPJaLoteConsulta:
                         "Idade": socio.get("person", {}).get("age"),
                         "CPF": socio.get("person", {}).get("taxId"),
                     })
+                
+                # Consulta Simples Nacional se solicitado
+                if verificar_simples:
+                    try:
+                        dados_simples = self.api.consultar_simples(cnpj)
+                        if dados_simples:
+                            simples_data = dados_simples.get("simples", {})
+                            simei_data = dados_simples.get("simei", {})
+                            
+                            is_simples = simples_data.get("optant", False)
+                            is_simei = simei_data.get("optant", False)
+                            
+                            resultados.append({
+                                "REG": "900",
+                                "CNPJ": dados.get("taxId"),
+                                "Simples Nacional": "Sim" if is_simples else "Não",
+                                "Data Opção Simples": self._formatar_data(simples_data.get("since", "")),
+                                "SIMEI": "Sim" if is_simei else "Não",
+                                "Data Opção SIMEI": self._formatar_data(simei_data.get("since", "")),
+                                "Última Atualização": self._formatar_data(dados_simples.get("updated", ""))
+                            })
+                        else:
+                            resultados.append({
+                                "REG": "900",
+                                "CNPJ": dados.get("taxId"),
+                                "Simples Nacional": "Dados não disponíveis",
+                                "Data Opção Simples": "",
+                                "SIMEI": "",
+                                "Data Opção SIMEI": "",
+                                "Última Atualização": ""
+                            })
+                    except Exception as e:
+                        resultados.append({
+                            "REG": "900",
+                            "CNPJ": dados.get("taxId"),
+                            "Simples Nacional": "Erro na consulta",
+                            "Erro": str(e)
+                        })
                 
             except Exception as e:
                 resultados.append({"REG": "999", "CNPJ": cnpj, "Falha na consulta": str(e)})
