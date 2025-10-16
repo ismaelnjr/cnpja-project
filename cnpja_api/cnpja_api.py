@@ -47,6 +47,29 @@ class CNPJaAPI:
         url = f"{self.BASE_URL}/credit"
         return self._get(url)
 
+    def consultar_cadastro_contribuintes(self, cnpj: str, registrations: list[str] = None) -> dict:
+        """
+        Consulta cadastro de contribuintes incluindo inscrições estaduais.
+        
+        Args:
+            cnpj (str): CNPJ da empresa
+            registrations (list[str], optional): Lista de estados para consultar inscrições (ex: ['BR', 'SP', 'RJ'])
+        
+        Returns:
+            dict: Dados completos do estabelecimento incluindo inscrições estaduais
+        """
+        cnpj = self._normalize_taxid(cnpj)
+        
+        # Constrói a URL base
+        url = f"{self.BASE_URL}/office/{cnpj}"
+        
+        # Adiciona parâmetros de registrations se fornecidos
+        if registrations:
+            registrations_param = ",".join(registrations)
+            url += f"?registrations={registrations_param}"
+        
+        return self._get(url)
+
     def _get(self, url: str) -> dict:
         response = requests.get(url, headers=self.headers)
         if response.status_code == 200:

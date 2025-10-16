@@ -41,7 +41,7 @@ class CNPJaLoteConsulta:
     def saldo_consultas(self):
         return self.api.consultar_saldo()
 
-    def consultar_lote(self, cnpjs: List[str], on_progress=None, check_cancel=None, verificar_simples=False) -> List[dict]:
+    def consultar_lote(self, cnpjs: List[str], on_progress=None, check_cancel=None, verificar_simples=False, verificar_contribuintes=False) -> List[dict]:
         resultados = []
         cnpjs_unicos = list(set(cnpjs))  # remove duplicados    
         total = len(cnpjs_unicos)
@@ -138,6 +138,50 @@ class CNPJaLoteConsulta:
                             "REG": "900",
                             "CNPJ": dados.get("taxId"),
                             "Simples Nacional": "Erro na consulta",
+                            "Erro": str(e)
+                        })
+                
+                # Consulta Cadastro de Contribuintes se solicitado
+                if verificar_contribuintes:
+                    try:
+                        # Lista de estados brasileiros para consultar inscrições
+                        estados_brasil = ['AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 
+                                         'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 
+                                         'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO']
+                        dados_contribuintes = self.api.consultar_cadastro_contribuintes(cnpj, registrations=estados_brasil)
+                        if dados_contribuintes and dados_contribuintes.get("registrations"):
+                            for registro in dados_contribuintes.get("registrations", []):
+                                resultados.append({
+                                    "REG": "800",
+                                    "CNPJ": dados.get("taxId"),
+                                    "Estado": registro.get("state", ""),
+                                    "Número Inscrição": registro.get("number", ""),
+                                    "Status": registro.get("status", {}).get("text", ""),
+                                    "Tipo": registro.get("type", {}).get("text", ""),
+                                    "Ativo": "Sim" if registro.get("enabled", False) else "Não",
+                                    "Data Status": self._formatar_data(registro.get("statusDate", ""))
+                                })
+                        else:
+                            resultados.append({
+                                "REG": "800",
+                                "CNPJ": dados.get("taxId"),
+                                "Estado": "",
+                                "Número Inscrição": "",
+                                "Status": "Nenhuma inscrição encontrada",
+                                "Tipo": "",
+                                "Ativo": "",
+                                "Data Status": ""
+                            })
+                    except Exception as e:
+                        resultados.append({
+                            "REG": "800",
+                            "CNPJ": dados.get("taxId"),
+                            "Estado": "",
+                            "Número Inscrição": "",
+                            "Status": "Erro na consulta",
+                            "Tipo": "",
+                            "Ativo": "",
+                            "Data Status": "",
                             "Erro": str(e)
                         })
                 
